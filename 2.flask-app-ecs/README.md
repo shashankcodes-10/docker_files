@@ -1,5 +1,67 @@
 # Flask App — AWS ECS Deployment
 
+
+### 🖥️ Application Output
+
+The Flask application was successfully built and run using Docker.
+
+
+![Flask App Output](./flask-app-output.png)
+
+The screenshot above shows the running Flask application with:
+
+* **Flask 3.1.1**
+* **Python 3.14**
+* **AWS ECS** as the target deployment platform
+
+
+## 👨‍💻 My Observations
+
+I used this project as part of my hands-on learning with **Docker, Python, Flask, and AWS ECS**.
+
+### 🐳 Docker Image
+
+I built the application using the `python:3.14-slim` base image.
+
+The resulting Docker image size was approximately:
+
+> **📦 Image Size: ~200 MB**
+
+This helped me understand how the choice of base image and installed dependencies affects the final Docker image size.
+
+### 🔗 Docker Hub
+
+The Docker image is available on Docker Hub:
+
+**[https://hub.docker.com/repository/docker/shashank971/flask-app-ecs/general](https://hub.docker.com/repository/docker/shashank971/flask-app-ecs/general)**
+
+You can pull the image using:
+
+```bash
+docker pull shashank971/flask-app-ecs:latest
+```
+
+And run it with:
+
+```bash
+docker run -p 80:80 shashank971/flask-app-ecs:latest
+```
+
+
+### 📊 Docker Image Size Observation
+
+| Base Image         | Observed Image Size |
+| ------------------ | ------------------: |
+| `python:3.14-slim` |         **~200 MB** |
+
+> **Note:** The image size is based on my local build. Actual image size can vary depending on the exact base image version, architecture, installed dependencies, and Docker configuration.
+
+The project also includes a **multi-stage Dockerfile using a distroless runtime image**, which can be explored to further reduce the final image size and attack surface.
+
+---
+
+# Original Project Documentation
+
 A minimal Flask web application built for learning containerization and deployment to **AWS ECS (Elastic Container Service)**.
 
 Part of the [TrainWithShubham](https://github.com/TrainWithShubham) — DevOps Zero To Hero course.
@@ -11,22 +73,22 @@ Part of the [TrainWithShubham](https://github.com/TrainWithShubham) — DevOps Z
 
 ## Features
 
-- Responsive landing page with modern glassmorphism UI
-- `/health` endpoint for ECS load balancer health checks
-- Two Dockerfiles — simple and multistage (distroless)
+* Responsive landing page with modern glassmorphism UI
+* `/health` endpoint for ECS load balancer health checks
+* Two Dockerfiles — simple and multistage (distroless)
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Framework | Flask 3.1.1 |
-| Runtime   | Python 3.14 |
+| Component | Technology                        |
+| --------- | --------------------------------- |
+| Framework | Flask 3.1.1                       |
+| Runtime   | Python 3.14                       |
 | Container | Docker (python-slim / distroless) |
-| Deploy    | AWS ECS |
+| Deploy    | AWS ECS                           |
 
 ## Project Structure
 
-```
+```text
 flask-app-ecs/
 ├── app.py                 # Flask app with routes
 ├── run.py                 # Entry point (host 0.0.0.0, port 80)
@@ -73,19 +135,21 @@ Single-stage build using `python:3.14-slim`. Straightforward — copies everythi
 ### Multistage (`Dockerfile-multi`)
 
 Two-stage build:
+
 1. **Builder stage** — installs dependencies into a separate directory using `python:3.14-slim`
 2. **Final stage** — copies only the app and deps into a `distroless` image
 
 Benefits:
-- Smaller final image (no pip, no shell, no OS utilities)
-- Reduced attack surface — distroless images contain only the app and its runtime
-- Better layer caching — dependencies are copied before source code
+
+* Smaller final image (no pip, no shell, no OS utilities)
+* Reduced attack surface — distroless images contain only the app and its runtime
+* Better layer caching — dependencies are copied before source code
 
 ## Endpoints
 
-| Route     | Method | Description                     |
-|-----------|--------|---------------------------------|
-| `/`       | GET    | Landing page                    |
+| Route     | Method | Description                                       |
+| --------- | ------ | ------------------------------------------------- |
+| `/`       | GET    | Landing page                                      |
 | `/health` | GET    | Health check (returns `Server is up and running`) |
 
 ## Deploy to AWS ECS
@@ -93,6 +157,7 @@ Benefits:
 High-level steps to deploy this app on ECS:
 
 1. **Push image to ECR**
+
    ```bash
    aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
    docker tag flask-app:latest <account-id>.dkr.ecr.<region>.amazonaws.com/flask-app:latest
@@ -104,3 +169,4 @@ High-level steps to deploy this app on ECS:
 3. **Create ECS Service** — attach to a cluster, configure desired count, link to a load balancer
 
 4. **Configure ALB** — target group pointing to port 80, use `/health` as the health check path
+
