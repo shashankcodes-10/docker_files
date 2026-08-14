@@ -30,7 +30,9 @@ From my testing, the Docker image size varied significantly depending on the Jav
 I have also published the Docker image on Docker Hub so it can be pulled and tested directly.
 
 **Docker Hub:**
+<a href="https://hub.docker.com/repository/docker/shashank971/java-quotes-app/general" target="_blank" rel="noopener noreferrer">
 https://hub.docker.com/repository/docker/shashank971/java-quotes-app/general
+</a>
 
 Pull the image using:
 
