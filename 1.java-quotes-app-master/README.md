@@ -59,12 +59,13 @@ For production-oriented applications, image size should be considered along with
 
 For further optimization, approaches such as **JRE-based images** and **multi-stage Docker builds** can be explored.
 
----
+
 
 ### 📌 Experiment Context
 
 This section represents my own observations while working with the project and does not replace the original project documentation or author's information.
 
+---
 
 # Java Motivational Quotes App
 
