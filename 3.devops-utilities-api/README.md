@@ -26,11 +26,12 @@ The `/metrics` endpoint provides system metrics through the API.
 
 ![FastAPI Application Output](./fastapi-output.png)
 
-### 🔗 Docker Hub Image
+### 🔗 Docker Hub
 
 The Docker image is available on Docker Hub:
 
-**Docker Image:** `shashank971/fastapi-app`
+**[https://hub.docker.com/repository/docker/shashank971/fastapi-app/general](https://hub.docker.com/repository/docker/shashank971/fastapi-app/general)**
+
 
 You can pull the image using:
 
