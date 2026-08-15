@@ -1,10 +1,8 @@
 # Flask App — AWS ECS Deployment
 
-
 ### 🖥️ Application Output
 
 The Flask application was successfully built and run using Docker.
-
 
 ![Flask App Output](./flask-app-output.png)
 
@@ -13,11 +11,16 @@ The screenshot above shows the running Flask application with:
 * **Flask 3.1.1**
 * **Python 3.14**
 * **AWS ECS** as the target deployment platform
+* **Gunicorn** serving as the production-ready WSGI web server
 
+## 👨‍💻 My Observations & Contributions
 
-## 👨‍💻 My Observations
+I used this project as part of my hands-on learning with **Docker, Python, Flask, and AWS ECS**. To elevate this project to real-world production standards, I introduced performance and architectural improvements.
 
-I used this project as part of my hands-on learning with **Docker, Python, Flask, and AWS ECS**.
+### ⚡ Feature Contribution: Production-Grade Gunicorn WSGI Server
+The original setup relied on Flask's built-in development server, which is single-threaded and not designed for production traffic. 
+* **What I Did:** I added `gunicorn` to the `requirements.txt` dependencies.
+* **Why It Matters:** Gunicorn enables the application to handle multiple requests concurrently via multiple worker processes. This prevents the server from freezing under load, makes it highly resilient, and drastically increases request processing speeds on AWS ECS.
 
 ### 🐳 Docker Image
 
@@ -47,7 +50,6 @@ And run it with:
 docker run -p 80:80 shashank971/flask-app-ecs:latest
 ```
 
-
 ### 📊 Docker Image Size Observation
 
 | Base Image         | Observed Image Size |
@@ -75,6 +77,7 @@ Part of the [TrainWithShubham](https://github.com/TrainWithShubham) — DevOps Z
 
 * Responsive landing page with modern glassmorphism UI
 * `/health` endpoint for ECS load balancer health checks
+* Production-ready **Gunicorn WSGI web server** capability
 * Two Dockerfiles — simple and multistage (distroless)
 
 ## Tech Stack
@@ -82,6 +85,7 @@ Part of the [TrainWithShubham](https://github.com/TrainWithShubham) — DevOps Z
 | Component | Technology                        |
 | --------- | --------------------------------- |
 | Framework | Flask 3.1.1                       |
+| Web Server| Gunicorn (Production-ready)       |
 | Runtime   | Python 3.14                       |
 | Container | Docker (python-slim / distroless) |
 | Deploy    | AWS ECS                           |
@@ -90,37 +94,50 @@ Part of the [TrainWithShubham](https://github.com/TrainWithShubham) — DevOps Z
 
 ```text
 flask-app-ecs/
-├── app.py                 # Flask app with routes
-├── run.py                 # Entry point (host 0.0.0.0, port 80)
-├── requirements.txt       # Python dependencies
+├── app.py                 # Flask app containing defined routes
+├── run.py                 # Local testing script / Alternative Entry point
+├── requirements.txt       # Python dependencies (includes Gunicorn)
 ├── templates/
 │   └── index.html         # Landing page
-├── Dockerfile             # Simple single-stage build
+├── Dockerfile             # Simple single-stage build using Gunicorn
 └── Dockerfile-multi       # Multistage build with distroless
 ```
 
-## Quick Start
+## Quick Start & Entry Points
 
-### Run locally
+This project is highly flexible. Depending on your environment, you can run the server directly using **`app.py`** or use **`run.py`** to boot your application.
+
+### 1. Run locally (Development mode)
+For immediate local changes and debugging, install your dependencies and use `run.py` to trigger Flask's built-in hot reloading:
 
 ```bash
 pip install -r requirements.txt
 python run.py
 ```
+App runs locally at **http://localhost:80**.
 
-App runs at **http://localhost:80**.
+### 2. Run with Docker (Production Gunicorn Mode)
+When containerizing the application, you can execute the production server targeting either entry point. Gunicorn bypasses local files entirely and loads the Flask instance into memory.
 
-### Run with Docker
+**Using `app.py` directly (Standard Approach):**
+```dockerfile
+CMD ["gunicorn", "--bind", "0.0.0.0:80", "app:app"]
+```
+
+**Using `run.py` (Alternative Entrypoint if handling pre-imports):**
+```dockerfile
+CMD ["gunicorn", "--bind", "0.0.0.0:80", "run:app"]
+```
+
+#### Build and Launch commands:
 
 **Simple build:**
-
 ```bash
 docker build -t flask-app .
 docker run -p 80:80 flask-app
 ```
 
 **Multistage build (smaller, production-grade):**
-
 ```bash
 docker build -f Dockerfile-multi -t flask-app .
 docker run -p 80:80 flask-app
@@ -130,7 +147,7 @@ docker run -p 80:80 flask-app
 
 ### Simple (`Dockerfile`)
 
-Single-stage build using `python:3.14-slim`. Straightforward — copies everything, installs dependencies, runs the app. Good for development and learning.
+Single-stage build using `python:3.14-slim`. Copies everything, installs dependencies (including Gunicorn), and maps execution cleanly through the optimized `exec` array command.
 
 ### Multistage (`Dockerfile-multi`)
 
@@ -169,4 +186,5 @@ High-level steps to deploy this app on ECS:
 3. **Create ECS Service** — attach to a cluster, configure desired count, link to a load balancer
 
 4. **Configure ALB** — target group pointing to port 80, use `/health` as the health check path
+
 
