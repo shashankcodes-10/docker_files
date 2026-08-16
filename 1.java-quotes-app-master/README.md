@@ -1,139 +1,298 @@
-## 🔬 My Observations: Java Version vs Docker Image Size
+# Java Motivational Quotes App
 
-As part of my Docker learning, I tested the same Java application using different Java versions to compare the resulting Docker image sizes.
+## 👨‍💻 My Docker Observations
 
-## 🖥️ Application Output
+I containerized this Java-based motivational quotes application as part of my hands-on **Docker and DevOps learning**.
 
-![Java Quotes App Output](./Screenshot.png)
+I experimented with different Java Docker images and also created a **multi-stage Docker build** to understand how the Java runtime and Docker build strategy affect the final image size.
 
-### Image Size Comparison
+### 🐳 Docker Image Size Comparison
 
-| Java Version | Docker Image Size |
-| ------------ | ----------------: |
-| ☕ Java 21    |        **554 MB** |
-| ☕ Java 24    |        **437 MB** |
-| ☕ Java 25    |        **420 MB** |
+| Build / Java Version | Docker Approach | Observed Image Size |
+|---|---|---:|
+| Java 21 | JDK-based image | **~554 MB** |
+| Java 24 | JDK-based image | **~437 MB** |
+| Java 25 | JDK-based image | **~420 MB** |
+| Java 21 | Multi-stage: JDK builder + JRE runtime | **~285 MB** |
 
-### 📊 Observation
+### 📊 My Observation
 
-From my testing, the Docker image size varied significantly depending on the Java base image/version used.
+The multi-stage build produced an image of approximately **285 MB**.
 
-* **Java 21:** 554 MB
-* **Java 24:** 437 MB → approximately **117 MB smaller** than Java 21
-* **Java 25:** 420 MB → approximately **134 MB smaller** than Java 21
-* Java 25 was the **smallest among the three versions I tested**.
+Compared with the Java 21 JDK image I previously built at approximately **554 MB**, this reduced the image by around:
 
-> **Note:** These sizes are the sizes I observed for my builds. Docker image size can vary depending on the exact base-image tag, architecture, Docker version, cached layers, and other build details. Therefore, these results should be treated as observations from this experiment rather than a universal comparison of Java versions.
+> **📉 ~269 MB (~48.6% smaller)**
 
-### 🐳 Docker Image
+The reduction comes mainly from using a **JDK in the builder stage** and a **JRE in the final runtime stage**.
 
-I have also published the Docker image on Docker Hub so it can be pulled and tested directly.
+However, the multi-stage image is not necessarily the smallest image possible. The final image still contains the Java 21 JRE and its underlying Alpine runtime. The exact size can also vary depending on the architecture, Docker version, base-image updates, cached layers, and how Docker reports image size.
 
-**Docker Hub:**
-<a href="https://hub.docker.com/repository/docker/shashank971/java-quotes-app/general" target="_blank" rel="noopener noreferrer">
-https://hub.docker.com/repository/docker/shashank971/java-quotes-app/general
-</a>
+### 💡 Key Docker Takeaway
 
-Pull the image using:
+> **The build environment does not need to be the runtime environment.**
 
-```bash
-docker pull shashank971/java-quotes-app
+The JDK is required for:
+
+```text
+javac → compile Main.java
 ```
 
-Run it with:
+but the running application only needs:
 
-```bash
-docker run shashank971/java-quotes-app
+```text
+java → run Main.class
 ```
 
-### 💡 Key Takeaway
-
-This experiment helped me understand that the choice of a Docker base image can have a significant impact on the final container image size.
-
-For production-oriented applications, image size should be considered along with:
-
-* Security
-* Java support lifecycle
-* Application compatibility
-* Startup performance
-* Build strategy
-* Runtime requirements
-
-For further optimization, approaches such as **JRE-based images** and **multi-stage Docker builds** can be explored.
-
-
-
-### 📌 Experiment Context
-
-This section represents my own observations while working with the project and does not replace the original project documentation or author's information.
+Therefore, using a JDK for the build stage and a JRE for the production stage avoids carrying the compiler and other JDK tooling into the final runtime image.
 
 ---
 
-# Java Motivational Quotes App
+## 🖥️ Application Output
 
-This project is a simple Java-based HTTP server that serves random motivational quotes via a REST API. The quotes are externalized to a `quotes.txt` file for easy customization.
+The application starts an HTTP server on port `8000` and returns a random motivational quote in JSON format.
 
-## Features
-- Serves random motivational quotes in JSON format.
-- Uses an external `quotes.txt` file for configurable quotes.
-- Lightweight HTTP server using `com.sun.net.httpserver.HttpServer`.
-- Dockerized for easy deployment.
+![Java Quotes App Output](./Screenshot.png)
 
-## Requirements
-- Java 17+
-- Maven (if building from source)
-- Docker (optional, for containerized deployment)
+Example endpoint:
 
-## Setup and Usage
-
-### Running Locally
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/LondheShubham153/java-quotes-app.git
-   cd java-quotes-app
-   ```
-2. Ensure `quotes.txt` exists in the project directory and contains quotes (one per line).
-3. Compile and run the application:
-   ```sh
-   javac src/Main.java -d out
-   java -cp out Main
-   ```
-4. The server will start on `http://localhost:8000/`.
-5. Test the API using:
-   ```sh
-   curl http://localhost:8000/
-   ```
-
-### Running with Docker
-1. Build the Docker image:
-   ```sh
-   docker build -t motivational-quotes-api .
-   ```
-2. Run the container:
-   ```sh
-   docker run -p 8000:8000 motivational-quotes-api
-   ```
-3. Access the API at `http://localhost:8000/`.
-
-## File Structure
-```
-project-root/
-│── src/
-│   └── Main.java
-│── quotes.txt
-│── Dockerfile
-│── README.md
-│── target/
-│   └── myapp.jar (if using Maven build)
+```text
+http://localhost:8000/
 ```
 
-## Customizing Quotes
-To customize the quotes, edit `quotes.txt` and restart the application. Each quote should be on a new line.
+Example response:
 
-## License
-This project is licensed under the MIT License.
+```json
+{
+  "quote": "Your motivational quote appears here"
+}
+```
 
-## Author
-[TrainWithShubham](https://github.com/LondheShubham153)
+---
 
+## 🔗 Docker Hub
 
+The Docker image is available on Docker Hub:
+
+**[🐳 https://hub.docker.com/repository/docker/shashank971/java-quotes-app/general](https://hub.docker.com/repository/docker/shashank971/java-quotes-app/general)**
+
+Pull the image:
+
+```bash
+docker pull shashank971/java-quotes-app:latest
+```
+
+Run the application:
+
+```bash
+docker run -p 8000:8000 shashank971/java-quotes-app:latest
+```
+
+Then open:
+
+```text
+http://localhost:8000/
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Component | Technology |
+|---|---|
+| Language | Java |
+| Java Runtime | Eclipse Temurin |
+| Java Version Tested | 21, 24, 25 |
+| HTTP Server | `com.sun.net.httpserver.HttpServer` |
+| Containerization | Docker |
+| Base Image | Eclipse Temurin Alpine |
+| Runtime Port | 8000 |
+
+---
+
+## ✨ Features
+
+- Lightweight Java HTTP server
+- Returns random motivational quotes
+- Quotes stored in an external `quotes.txt` file
+- JSON API response
+- Dockerized application
+- Single-stage Docker build
+- Multi-stage Docker build
+- JDK → JRE runtime optimization
+
+---
+
+## 📁 Project Structure
+
+```text
+java-quotes-app/
+├── src/
+│   └── Main.java          # Java HTTP server
+├── quotes.txt             # Motivational quotes
+├── Dockerfile             # Single-stage Docker build
+├── Dockerfile.multistage  # Multi-stage JDK → JRE build
+├── Screenshot.png         # Application output screenshot
+└── README.md              # Project documentation
+```
+
+---
+
+## ⚙️ How the Application Works
+
+The application uses Java's built-in:
+
+```text
+com.sun.net.httpserver.HttpServer
+```
+
+to create a lightweight HTTP server.
+
+The application:
+
+1. Loads quotes from `quotes.txt`.
+2. Starts an HTTP server on port `8000`.
+3. Creates an endpoint at `/`.
+4. Selects a random quote.
+5. Returns the quote as a JSON response.
+
+The basic flow is:
+
+```text
+quotes.txt
+    ↓
+Main.java
+    ↓
+Java HTTP Server
+    ↓
+GET /
+    ↓
+Random Quote
+    ↓
+JSON Response
+```
+
+---
+
+## 🚀 Running Locally
+
+Compile the application:
+
+```bash
+javac src/Main.java -d out
+```
+
+Run it:
+
+```bash
+java -cp out Main
+```
+
+The server will start on:
+
+```text
+http://localhost:8000
+```
+
+Test it with:
+
+```bash
+curl http://localhost:8000/
+```
+
+---
+
+## 🐳 Docker Usage
+
+### Single-stage build
+
+Build:
+
+```bash
+docker build -t java-quotes-app .
+```
+
+Run:
+
+```bash
+docker run -p 8000:8000 java-quotes-app
+```
+
+### Multi-stage build
+
+Build:
+
+```bash
+docker build -f Dockerfile.multistage -t java-quotes-app:multistage .
+```
+
+Run:
+
+```bash
+docker run -p 8000:8000 java-quotes-app:multistage
+```
+
+---
+
+## 📈 Docker Image Optimization
+
+The multi-stage Dockerfile follows this approach:
+
+```text
+                 Build Stage
+                     │
+          Eclipse Temurin JDK
+                     │
+                javac Main.java
+                     │
+                     ▼
+                Main.class
+                     │
+                     ▼
+              Runtime Stage
+                     │
+          Eclipse Temurin JRE
+                     │
+                     ▼
+             Final Container
+```
+
+The compiler and other JDK tooling are needed only during the build stage.
+
+The final application only needs the Java runtime to execute `Main.class`.
+
+This is why a **JDK → JRE multi-stage build** can significantly reduce the runtime image compared with keeping the complete JDK in the final container.
+
+---
+
+## 📌 Experiment Summary
+
+| Experiment | Result |
+|---|---:|
+| Java 21 JDK image | ~554 MB |
+| Java 24 JDK image | ~437 MB |
+| Java 25 JDK image | ~420 MB |
+| Java 21 JDK → JRE multi-stage | **~285 MB** |
+
+This experiment helped me understand that Docker image optimization involves more than just choosing a Java version.
+
+Important factors include:
+
+- JDK vs JRE
+- Base image
+- Multi-stage builds
+- Architecture
+- Application dependencies
+- Build artifacts
+- Runtime requirements
+
+---
+
+##  Original Project / Author
+
+This project was originally taken from **Shubham Londhe / TrainWithShubham**.
+
+**Author / source repository:**
+
+https://github.com/LondheShubham153
+
+The Dockerization, Java-version image-size experiments, multi-stage Docker build, and observations documented above are my own hands-on work.
