@@ -2,62 +2,82 @@
 
 ## 👨‍💻 My Docker Observations
 
-I containerized this DevBoard frontend as part of my hands-on Docker and DevOps learning.
+I containerized this DevBoard frontend as part of my hands-on **Docker and DevOps learning**.
 
-### 🐳 Docker Image
+During the process, I experimented with both a **single-stage Docker build** and a **multi-stage Docker build** to understand their impact on the final image size.
 
-I created a Docker image using **Node.js 22 Alpine** as the base image.
+## 🐳 Docker Image Size Comparison
 
-The resulting Docker image size was approximately:
+| Docker Build | Image                                | Observed Size |
+| ------------ | ------------------------------------ | ------------: |
+| Single-stage | `shashank971/devboard-ui:latest`     |   **~735 MB** |
+| Multi-stage  | `shashank971/devboard-ui:multistage` |    **~93 MB** |
 
-> **📦 Image Size: ~735 MB**
+### 📊 Result
 
-This experiment helped me understand that even when using a lightweight Alpine base image, the final image can become significantly larger when the container includes the Node.js development environment, npm dependencies, and the application source.
+The multi-stage Docker build reduced the image size from approximately **735 MB to 93 MB**.
 
-For this project, the Dockerfile installs the dependencies with:
+That's a reduction of approximately:
 
-```bash
-npm ci --legacy-peer-deps
-```
+> **📉 ~642 MB / ~87.3% smaller**
 
-and starts the Vite development server on port `5173`.
+This experiment demonstrated an important Docker optimization principle:
 
-> **Note:** The ~735 MB size is the size I observed during my build. Actual image size can vary depending on the Node.js image tag, architecture, dependency versions, Docker configuration, and whether development dependencies are included.
+> **The build environment doesn't need to be the runtime environment.**
+
+The single-stage image contains the Node.js environment, npm dependencies, source code, and development tooling.
+
+With the multi-stage approach, the application is built in a Node.js environment and only the required production files are included in the final runtime image.
 
 ### 🖥️ Application Output
 
 The DevBoard application was successfully built and run through Docker.
 
-
 ![DevBoard Application Output](./devboard-output.png)
 
 The screenshot shows the DevBoard dashboard with:
 
-- Workspace overview
-- Project velocity
-- Task status cards
-- Projects section
-- Recent tasks
-- Dark-themed dashboard UI
+* Workspace overview
+* Project velocity
+* Task status cards
+* Projects section
+* Recent tasks
+* Dark-themed dashboard UI
 
-### 🔗 Docker Hub
 
-The Docker image is available on Docker Hub:
+### 🔗 Docker Hub Images
 
-**[https://hub.docker.com/repository/docker/shashank971/devboard-ui/general](https://hub.docker.com/repository/docker/shashank971/devboard-ui/general)**
+**Single-stage image:**
+[🐳 `shashank971/devboard-ui:latest`](https://hub.docker.com/repository/docker/shashank971/devboard-ui/general)
 
-### 🚀 Run the Docker Image
+**Multi-stage image:**
+[🐳 `shashank971/devboard-ui:multistage`](https://hub.docker.com/repository/docker/shashank971/devboard-ui/general)
 
-Build the image:
+You can pull the images using:
 
 ```bash
-docker build -t devboard-ui .
+docker pull shashank971/devboard-ui:latest
 ```
 
-Run the container:
+```bash
+docker pull shashank971/devboard-ui:multistage
+```
+
+
+---
+
+## 🚀 Running the Docker Images
+
+### Single-stage image
 
 ```bash
-docker run -p 5173:5173 devboard-ui
+docker run -p 5173:5173 shashank971/devboard-ui:latest
+```
+
+### Multi-stage image
+
+```bash
+docker run -p 5173:5173 shashank971/devboard-ui:multistage
 ```
 
 Then open:
@@ -66,27 +86,7 @@ Then open:
 http://localhost:5173
 ```
 
-### 🧩 Dockerfile Used
-
-The project uses:
-
-```dockerfile
-FROM node:22-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm ci --legacy-peer-deps
-
-COPY . .
-
-EXPOSE 5173
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
-```
-
-The `.dockerignore` excludes `node_modules`, `dist`, `.git`, and `.DS_Store` from the Docker build context.
+> **Note:** The image sizes mentioned above are the sizes I observed during my builds. Actual sizes can vary depending on the base image version, architecture, dependency versions, and Docker configuration.
 
 ---
 
@@ -96,34 +96,34 @@ DevBoard is a modern task and project management frontend built with React and V
 
 ## ✨ Features
 
-- Modern DevBoard dashboard UI
-- Project overview
-- Task management interface
-- Kanban board components
-- Task creation modal
-- Project detail pages
-- Search/command bar
-- Theme toggle
-- Responsive layout
-- API integration through a small `fetch` wrapper
-- React Router based navigation
-- React Query for server-state management
-- Component tests using Vitest and Testing Library
+* Modern DevBoard dashboard UI
+* Project overview
+* Task management interface
+* Kanban board components
+* Task creation modal
+* Project detail pages
+* Search/command bar
+* Theme toggle
+* Responsive layout
+* API integration through a small `fetch` wrapper
+* React Router based navigation
+* React Query for server-state management
+* Component tests using Vitest and Testing Library
 
 ## 🛠️ Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | React 18 |
-| Build Tool | Vite |
-| Runtime | Node.js 22 |
-| Styling | Tailwind CSS |
-| Routing | React Router |
-| Data Fetching | TanStack React Query |
-| Icons | Tabler Icons |
-| Testing | Vitest + Testing Library |
-| Container | Docker |
-| Base Image | `node:22-alpine` |
+| Component     | Technology               |
+| ------------- | ------------------------ |
+| Frontend      | React 18                 |
+| Build Tool    | Vite                     |
+| Runtime       | Node.js 22               |
+| Styling       | Tailwind CSS             |
+| Routing       | React Router             |
+| Data Fetching | TanStack React Query     |
+| Icons         | Tabler Icons             |
+| Testing       | Vitest + Testing Library |
+| Container     | Docker                   |
+| Base Image    | `node:22-alpine`         |
 
 ## 📁 Project Structure
 
@@ -148,6 +148,7 @@ devboard-ui/
 │   └── main.jsx
 ├── .dockerignore
 ├── Dockerfile
+├── Dockerfile-multi
 ├── package.json
 ├── package-lock.json
 ├── tailwind.config.js
@@ -191,22 +192,6 @@ Run ESLint with:
 npm run lint
 ```
 
-## 🐳 Docker
-
-Build the Docker image:
-
-```bash
-docker build -t devboard-ui .
-```
-
-Run the container:
-
-```bash
-docker run -p 5173:5173 devboard-ui
-```
-
-The Vite development server is configured to listen on `0.0.0.0`, allowing the application to be accessed through the published Docker port.
-
 ## 🔗 API / Backend
 
 The frontend contains an API client and Vite proxy configuration for communicating with a Go backend.
@@ -225,28 +210,36 @@ backend:8080
 
 ## 📌 Docker Learning Takeaway
 
-This project was useful for understanding an important Docker optimization concept:
+This project demonstrated the significant impact that **multi-stage Docker builds** can have on image size.
 
-> **A small base image does not automatically mean a small final image.**
+### Before
 
-Although `node:22-alpine` is relatively lightweight, installing the complete npm dependency tree and retaining development dependencies can make the final image substantially larger.
+**Single-stage: ~735 MB**
 
-A future optimization would be to use a **multi-stage production build**:
+### After
 
-1. Install dependencies and build the React application in a Node.js builder image.
-2. Copy only the generated `dist` files into a lightweight web server such as Nginx.
-3. Run the final container without the Node.js development environment or npm dependencies.
+**Multi-stage: ~93 MB**
 
-This approach can significantly reduce the final production image size.
+That's approximately an **87.3% reduction** in image size.
+
+The main reason for this reduction is that the final image does not need the complete Node.js development environment, npm tooling, and build-time dependencies.
+
+The application is built in one stage, and only the required production files are carried into the final runtime image.
+
+### Key Takeaway
+
+> **Build with a full environment, but run with only what the application needs.**
+
+Multi-stage builds are therefore an effective way to reduce Docker image size, improve security, and minimize unnecessary components in production containers.
 
 ---
 
-## 🙏 Original Project / Author
+# Original Project / Author
 
 This project was originally taken from **Shubham Londhe**.
 
-Author / source repository:
+**Author / source repository:**
 
 https://github.com/LondheShubham153
 
-The Dockerization, image-size observation, and documentation in the section above are my own hands-on work and observations.
+The Dockerization, multi-stage optimization, image-size comparison, and observations in this README are my own hands-on work.
