@@ -1,0 +1,56 @@
+services:
+  flask-app:
+   container_name: two-tier-flask
+   build: .
+   ports:
+    - "5001:5000"
+   networks: 
+    - flask-app
+   environment:
+     MYSQL_HOST: ${MYSQL_HOST}
+     MYSQL_USER: ${MYSQL_USER}
+     MYSQL_DB: ${MYSQL_DB}
+     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+   depends_on:
+     mysql:
+      condition: service_healthy  
+   healthcheck:
+      test:
+        [
+         "CMD",
+         "python",
+         "-c",
+         "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s 
+
+  mysql:
+   container_name: mysql
+   image: mysql:5.7
+   platform: linux/amd64    # for mac users
+   environment:
+     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+     MYSQL_USER: ${MYSQL_USER}
+     MYSQL_DATABASE: ${MYSQL_DATABASE}
+     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+   networks: 
+    - flask-app 
+   ports:
+    - "3306:3306" 
+   volumes:
+    - flask-volume:/var/lib/mysql
+   healthcheck:
+    test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 60s
+
+networks:
+   flask-app:
+
+volumes:
+  flask-volume:      
