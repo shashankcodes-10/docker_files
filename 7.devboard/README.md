@@ -1,277 +1,232 @@
-# DevBoard — Advanced (UI + Go + Postgres)
+# DevBoard — Advanced (React + Go + PostgreSQL)
 
-This is the same DevBoard UI as the `master` branch, but now the data comes
-from a **real backend** instead of fake in-memory data.
+DevBoard is a full-stack task and project management application built with a React frontend, Go backend, and PostgreSQL database.
 
-Three pieces talk to each other:
+The application uses real persistent database data instead of in-memory mock data.
 
-```
-browser  →  frontend (React)  →  backend (Go API)  →  database (Postgres)
-```
+![DevBoard Application](./devboard.png)
 
-- **frontend** — the React app. It also forwards anything starting with `/api`
-  to the backend.
-- **backend** — a small Go program that reads and writes the database.
-- **database** — Postgres, with some example projects and tasks loaded on first
-  start.
+## My Changes & Application Output
 
-There's no login and no AI here on purpose. The whole point is to *see how the
-pieces connect*.
+| My Changes | Application Output |
+|---|---|
+| **Containerized the complete application stack** with React frontend, Go backend, and PostgreSQL database using Docker Compose. | ![DevBoard Application](./assets/devboard.png) |
+| **Implemented multi-stage Docker builds** for the frontend and backend to separate build dependencies from runtime images. | The application is running successfully with real project and task data loaded from PostgreSQL. |
+| **Used Docker Hardened Images (DHI)** for the Node.js and Go build/runtime stages where applicable. | Nginx serves the production React build and routes `/api/` requests to the Go backend. |
+| **Added Nginx reverse-proxy routing** between the React frontend and Go API. | React frontend, Go API, and PostgreSQL communicate through the Docker network. |
+| **Added PostgreSQL persistence and initialization** using Docker volumes and the `init/postgres/` SQL files. | Database-backed projects and tasks are displayed in the DevBoard UI. |
+| **Added environment-based configuration** for backend and PostgreSQL settings. | The stack is accessible through the frontend entry point on the configured host port. |
+| **Added container healthchecks** for PostgreSQL and backend readiness. | The application is shown in the screenshot above running as the completed full-stack version. |
 
----
+## Architecture
 
-## What you need
+Browser → Nginx → React frontend  
+                     ↓  
+                 Go backend → PostgreSQL
 
-- **Docker** (with Docker Compose, which comes with Docker Desktop).
-- That's it. You do **not** need Node, Go, or Postgres installed — they all run
-  inside containers.
+Nginx acts as the single entry point for the application. It serves the React production build and reverse-proxies `/api/` requests to the Go backend.
 
----
+## Project Components
 
-## Part 1 — The manual way (do it by hand to understand it)
+### Frontend
 
-Run all commands from this folder. We'll start the three pieces one by one, the
-hard way, so you can see exactly what Docker Compose does for you later.
+- React application built with Vite
+- Production assets generated during a multi-stage Docker build
+- Node.js is used only during the build stage
+- Nginx serves the final static React files
+- Nginx handles SPA routing so React routes continue to work after page refreshes
+- `/api/` requests are forwarded to the Go backend
 
-### Step 1: Create a network
+### Backend
 
-Containers can only find each other by name if they're on the **same network**.
-So first we make one:
+- Go REST API
+- Reads and writes project and task data in PostgreSQL
+- Provides a health endpoint
+- Runs as a compiled Go binary
+- Uses a multi-stage Docker build so the final image contains the application binary rather than the source and build dependencies
 
-```bash
-docker network create devboard-net
-```
+### Database
 
-### Step 2: Build the images
+- PostgreSQL
+- Persistent Docker volume for database data
+- Initialization scripts create the database schema and load example data on the first database initialization
+- Database readiness is checked with a PostgreSQL healthcheck
 
-The frontend and backend are *our* code, so we build an image for each. The
-database is not our code — it's the official Postgres image — so there's
-nothing to build for it.
+## Docker Setup
 
-```bash
-docker build -t devboard-frontend ./frontend
-docker build -t devboard-backend ./backend
-```
+The project uses Docker Compose to run the complete application stack together.
 
-The first build downloads base images and compiles the code, so it can take a
-few minutes. Later builds are much faster.
+The Compose setup provides:
 
-### Step 3: Run the database
+- Frontend container
+- Backend container
+- PostgreSQL container
+- Shared Docker networking
+- Persistent PostgreSQL storage
+- Environment-based configuration
+- Service dependency management
+- Database healthcheck
+- Backend healthcheck
+- Nginx reverse proxy
 
-We name it `postgres`. The backend will look for it by that exact name. The
-`-v ./init/postgres:...` line loads the example data the first time it starts.
+The frontend is exposed on port `8080` on the host.
 
-```bash
-docker run -d --name postgres --network devboard-net \
-  -e POSTGRES_USER=devboard \
-  -e POSTGRES_PASSWORD=devboard \
-  -e POSTGRES_DB=devboard \
-  -v "$PWD/init/postgres":/docker-entrypoint-initdb.d:ro \
-  -p 5432:5432 \
-  postgres:16-alpine
-```
+The backend listens on port `8080` inside its container and is accessed through Nginx rather than being required to be publicly exposed.
 
-### Step 4: Run the backend
+PostgreSQL listens on its standard container port `5432`.
 
-We name it `backend` (the frontend looks for this name). We also tell it how to
-reach the database with `POSTGRES_URL` — notice it uses the name `postgres`.
+## Docker Images
 
-```bash
-docker run -d --name backend --network devboard-net \
-  -e PORT=8080 \
-  -e POSTGRES_URL="postgres://devboard:devboard@postgres:5432/devboard?sslmode=disable" \
-  -p 8081:8080 \
-  devboard-backend
-```
+The frontend uses a multi-stage build:
 
-### Step 5: Run the frontend
+- Builder: Docker Hardened Node.js development image
+- Runner: Nginx Alpine image
 
-It serves the app on port 4173 inside the container; we map it to 8080 on your
-machine.
+The backend uses a multi-stage build:
 
-```bash
-docker run -d --name frontend --network devboard-net \
-  -p 8080:4173 \
-  devboard-frontend
-```
+- Builder: Docker Hardened Go Alpine image
+- Runner: Docker Hardened Go Alpine image
 
-### Step 6: Open it and check
+Using multi-stage builds keeps build dependencies and source files out of the production frontend and keeps the backend runtime focused on the compiled application.
 
-Open **http://localhost:8080** in your browser — you should see the DevBoard
-dashboard with some example tasks. (If the page shows an error for a second on
-first load, the backend is still starting up — just refresh.)
+## Environment Configuration
 
-Then check the wiring from the terminal:
+Runtime configuration is kept in `.env` and is based on the provided `.env.example` template.
 
-```bash
-curl http://localhost:8081/health                      # backend says OK
-curl "http://localhost:8080/api/tasks?project_id=1"    # app → backend → database
-```
+The main configuration values include:
 
-### Step 7: Stop and clean up
+- Frontend host port
+- Backend port
+- PostgreSQL username
+- PostgreSQL password
+- PostgreSQL database name
+- PostgreSQL connection URL
 
-```bash
-docker rm -f frontend backend postgres
-docker network rm devboard-net
-```
+The backend connects to PostgreSQL through the Docker Compose service name rather than `localhost`.
 
-### The one thing to remember: names
+The PostgreSQL connection follows this structure:
 
-The backend finds the database using the name `postgres` (see `POSTGRES_URL`).
-The frontend finds the backend using the name `backend` (see
-`frontend/vite.config.js`). So those container **names must match**, and they
-only work because everything is on the same `devboard-net` network.
+`postgres://USERNAME:PASSWORD@DATABASE_SERVICE:5432/DATABASE?sslmode=disable`
 
-That's a lot of typing, and you have to start them in the right order. This is
-exactly the problem Docker Compose solves.
+This allows the backend container to communicate with the PostgreSQL container through Docker's internal network.
 
----
+## Database Persistence
 
-## Part 2 — The easy way: Docker Compose
+PostgreSQL data is stored in a named Docker volume so that removing and recreating containers does not automatically remove the database data.
 
-Compose does everything from Part 1 — the network, the names, the order, the
-environment values — from one file (`docker-compose.yml`).
+The project also contains PostgreSQL initialization files under `init/postgres/`.
 
-First, create your settings file (one time only). Compose reads it to fill in
-passwords and ports, so the stack won't start without it:
+These scripts are used by PostgreSQL during the first initialization of a new database volume to create the required schema and load example data.
 
-```bash
-cp .env.example .env
-```
+## API
 
-Then start everything with one command:
+The frontend communicates with the backend through the `/api/` path.
 
-```bash
-docker compose up --build
-```
+The backend provides endpoints for:
 
-The first build can take a few minutes. When it's done, open
-**http://localhost:8080** in your browser.
+- Listing projects
+- Creating projects
+- Listing tasks for a project
+- Creating tasks
+- Updating tasks
+- Searching tasks
+- Backend health status
 
-Stop it:
+The browser communicates with the frontend through Nginx, while Nginx forwards API traffic to the backend over the Docker network.
 
-```bash
-docker compose down
-```
+## Healthchecks
 
-| Piece    | Open in browser / curl        | Notes                                   |
-| -------- | ----------------------------- | --------------------------------------- |
-| Frontend | http://localhost:8080         | the app; forwards `/api` to the backend |
-| Backend  | http://localhost:8081/health  | the Go API (the app uses it via `/api`) |
-| Postgres | localhost:5432                | user / password: `devboard` / `devboard`|
+Healthchecks are used to make the stack more reliable during startup.
 
----
+### PostgreSQL
 
-## Part 3 — The shortcut: `make`
+PostgreSQL readiness is checked using its built-in `pg_isready` utility.
 
-You don't even have to remember the Compose commands. Run `make` to see what's
-available:
+### Backend
 
-```bash
-make           # list all commands
-make setup     # create your .env file (first time only)
-make up        # build and start everything
-make down      # stop everything
-make logs      # watch the logs
-make reset     # wipe the database and start fresh
-make smoke     # quick check that everything works
-```
+The Go API exposes a health endpoint that can be used to verify that the backend is running.
 
-`make up` creates `.env` for you automatically, so it's the simplest way to start.
+### Frontend
 
-> `make` is optional. It's already available on Linux and macOS (on macOS you may
-> need Xcode Command Line Tools: `xcode-select --install`). On Windows, either use
-> WSL or just run the `docker compose` commands from Part 2 directly.
+Nginx is configured as the production frontend server. A separate healthcheck is optional because successful Nginx startup provides a basic runtime check for this project.
 
----
+## Running the Project
 
-## Settings live in `.env`
+### Requirements
 
-All the changeable values (passwords, ports) live in one file. The first time,
-copy the example:
+Only Docker with Docker Compose is required.
 
-```bash
-cp .env.example .env     # or: make setup
-```
+Node.js, Go, and PostgreSQL do not need to be installed locally because they run inside containers.
 
-`.env.example` is the template kept in git. Your real `.env` is ignored by git,
-so in a real project your secrets never get committed.
+### Start
 
----
+Create the local `.env` file from the example configuration and start the application with Docker Compose.
 
-## The API (for reference)
+After the containers are running, open the frontend at:
 
-The browser calls these as `/api/...`; the backend serves them at the root.
+`http://localhost:8080`
 
-| Method | Path                      | What it does                          |
-| ------ | ------------------------- | ------------------------------------- |
-| GET    | `/projects`               | list projects                         |
-| POST   | `/projects`               | create a project                      |
-| GET    | `/tasks?project_id=N`     | list tasks in a project               |
-| POST   | `/tasks`                  | create a task                         |
-| PATCH  | `/tasks/:id`              | update a task (e.g. change status)    |
-| GET    | `/search?q=&project_id=N` | search tasks by title                 |
-| GET    | `/health`                 | health check                          |
+The backend health endpoint is available through the backend service for health verification.
 
-## Folder layout
+### Stop
 
-```
-.
-├── docker-compose.yml   starts frontend + backend + postgres together
-├── Makefile             short commands (make up, make down, ...)
-├── .env.example         template for settings (copy to .env)
-├── frontend/            React app (Vite). Serves the UI, forwards /api
-├── backend/             Go API (main.go + Dockerfile)
-└── init/postgres/       schema + example data, loaded on first start
-```
+Stop the Compose stack when finished.
 
----
+### Reset Database
 
-## CI/CD DevSecOps Setup
+The database can be reset by removing the PostgreSQL volume and starting the stack again. This causes the initialization scripts to run again and recreates the example database state.
 
-The repository contains GitHub Actions workflows configured with SonarQube (SAST) and OWASP ZAP (DAST) scanning.
+## Folder Structure
 
-### How to Install and Set Up SonarQube on EC2
+- `docker-compose.yml` — runs the complete application stack
+- `Makefile` — provides convenient project commands
+- `.env.example` — environment configuration template
+- `frontend/` — React/Vite frontend and Nginx configuration
+- `backend/` — Go API and backend Dockerfile
+- `init/postgres/` — PostgreSQL schema and seed initialization files
+- `assets/` — project screenshots
 
-To run your own self-hosted SonarQube server on your AWS EC2 instance:
+## DevSecOps / CI/CD
 
-1. **Start the SonarQube Container**:
-   Ensure Docker is installed on your EC2 instance, then run:
-   ```bash
-   docker run -itd --name SonarQube-Server -p 9000:9000 sonarqube:community
-   ```
+The repository includes GitHub Actions workflows for:
 
-2. **Access the Web Interface**:
-   - Make sure port `9000` is open in your **AWS EC2 Security Group** inbound rules.
-   - Access `http://<YOUR_EC2_PUBLIC_IP>:9000` in your browser.
-   - Log in using default credentials: Username: `admin` / Password: `admin` (you will be prompted to change it)
+- SonarQube static application security testing
+- OWASP ZAP dynamic application security testing
+- Docker image build and push automation
 
+### SonarQube
 
-### How to configure SonarQube Secrets
+A self-hosted SonarQube instance can be used for source-code analysis.
 
-To enable SonarQube scanning in your GitHub Actions pipeline:
+The GitHub Actions workflow uses repository configuration for the SonarQube host and authentication token.
 
-1. **Get the Host URL**:
-   - If using a self-hosted instance, your `SONAR_HOST_URL` is the URL where SonarQube is hosted (e.g., `http://your-sonarqube-ip:9000`).
-   - If using SonarCloud, use `https://sonarcloud.io`.
-2. **Generate a SonarQube Token**:
-   - In SonarQube: Go to your **Profile (User Icon) > My Account > Security**.
-   - Under **Generate Tokens**, enter a token name, select the **User Token** type, and click **Generate**.
-   - Copy the generated token string.
-3. **Add Secrets to GitHub**:
-   - Go to your GitHub Repository settings.
-   - Navigate to **Settings > Secrets and variables > Actions**.
-   - Add two Repository Secrets:
-     - `SONAR_TOKEN`: Paste the SonarQube token you copied.
-     - `SONAR_HOST_URL`: Paste your SonarQube server URL.
+### Docker Hub
 
-### How to configure Docker Hub Credentials
+The CI pipeline can build and push the application images to Docker Hub.
 
-To allow the CI pipeline to build and push images to Docker Hub:
-1. Navigate to **Settings > Secrets and variables > Actions**.
-2. Under the **Variables** tab, add:
-   - `DOCKERHUB_USERNAME`: Your Docker Hub username.
-3. Under the **Secrets** tab, add:
-   - `DOCKERHUB_TOKEN`: A Personal Access Token (PAT) generated from Docker Hub.
+Docker Hub credentials should be stored as GitHub Actions secrets and variables rather than committed to the repository.
 
+## What This Project Demonstrates
 
+This project demonstrates a production-oriented containerized full-stack application with:
+
+- React frontend
+- Go REST API
+- PostgreSQL database
+- Docker multi-stage builds
+- Docker Compose
+- Docker networking
+- Nginx reverse proxy
+- API routing
+- Persistent database volumes
+- Environment-based configuration
+- Container healthchecks
+- Docker Hardened Images
+- CI/CD security scanning
+- Docker image publishing
+
+## Application Screenshot
+
+The screenshot below shows the DevBoard application running with real project and task data loaded from PostgreSQL.
+
+![DevBoard running application](./assets/devboard.png)
