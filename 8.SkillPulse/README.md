@@ -11,6 +11,25 @@ shipping every push to production with GitHub Actions. You'll build the whole lo
 
 ---
 
+## My Contribution
+
+As part of my hands-on DevOps work on this project, I containerised the application and built the Docker setup from scratch. In short, I:
+
+- Created a multi-stage Dockerfile for the Go backend using DHI images.
+- Created a single-stage Dockerfile for the static HTML/CSS/JavaScript frontend using Nginx.
+- Configured Nginx to serve the frontend and reverse-proxy `/api/` and `/health` requests to the Go backend.
+- Created the Docker Compose setup to connect the frontend, backend, and MySQL services.
+- Configured the MySQL environment variables, persistent volume, and SQL initialization.
+- Worked with Docker networking and service-name based communication between containers.
+- Used DHI (Docker Hardened Images) for the application containers and optimized the backend runtime image.
+- Tested the complete application locally and verified the dashboard and backend connectivity.
+
+### Application Screenshot
+
+![SkillPulse Dashboard](./skillpulse-dashboard.png)
+
+
+
 ## What you'll learn
 
 | Topic | Where it lives in this repo |
@@ -235,3 +254,6 @@ credentials are in the repo on purpose — every one of those is a deliberate si
 so the pipeline stays readable end to end. `DEPLOYMENT.md` §12 lists every decision and
 its rationale. **Don't ship this shape to production**; do understand why each shortcut
 was taken, and what the production-grade alternative would be.
+
+---
+
