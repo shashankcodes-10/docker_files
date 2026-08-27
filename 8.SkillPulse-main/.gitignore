@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Local env files
+.env
+.env.local
+
+# SSH / certs — never commit
+*.pem
+*.key
+
+# Logs
+*.log
+
+#Claude
+CLAUDE.md
