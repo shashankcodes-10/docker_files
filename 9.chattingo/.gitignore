@@ -1,0 +1,100 @@
+# IDE and Editor files
+.vscode/
+.idea/
+
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files (keep examples, ignore actual .env files)
+.env
+!.env.example
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Node.js dependencies (frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# Frontend build output
+/frontend/build
+/frontend/dist
+
+# Backend build output
+/backend/target/
+/backend/build/
+/backend/out/
+
+# Maven wrapper (keep it)
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Docker volumes and data
+docker-data/
+mysql-data/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+
+# Certificate files (for security)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Local development files
+.local/
+.cache/
+
+
+# Application specific logs
+frontend.log
+server.log
+application.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary Maven files
+dependency-reduced-pom.xml
