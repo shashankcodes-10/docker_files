@@ -1,0 +1,80 @@
+services:
+
+  backend:
+    container_name: ai-bank-app-backend
+    build:
+      context: ./backend
+    networks:
+      - ai-bank
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      OLLAMA_URL: http://ollama:11434
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ollama-pull-model:
+        condition: service_completed_successfully
+
+  mysql:
+    container_name: mysql
+    image: mysql:5.7
+    networks:
+      - ai-bank
+    volumes:
+      - ai-bank:/var/lib/mysql
+    ports:
+      - "${MYSQL_PORT}:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin -u root -p${MYSQL_ROOT_PASSWORD} ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - ai-bank
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama-pull-model:
+    container_name: ollama-pull-model
+    image: ollama/ollama
+    environment:
+      - OLLAMA_HOST=ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: -c "ollama pull tinyllama"
+    networks:
+      - ai-bank
+
+networks:
+  ai-bank:
+
+volumes:
+  ai-bank:
+  ollama-data:
