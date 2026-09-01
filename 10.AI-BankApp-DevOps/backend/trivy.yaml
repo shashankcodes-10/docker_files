@@ -1,0 +1,10 @@
+cache:
+  dir: ~/.cache/trivy
+
+db:
+  no-progress: false
+  
+vulnerability:
+  ignore-unfixed: true
+  severity:
+    - CRITICAL
