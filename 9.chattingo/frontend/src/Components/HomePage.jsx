@@ -129,7 +129,10 @@ function HomePage() {
   // Effect to handle sending a new message via WebSocket
   useEffect(() => {
     if (message.newMessage && isConnected && stompClient && currentChat?.id) {
-      stompClient.send("/app/message", {}, JSON.stringify(message.newMessage));
+      stompClient.publish({
+        destination: "/app/message",
+        body: JSON.stringify(message.newMessage),
+      });
       setMessages((prevMessages) => [...prevMessages, message.newMessage]);
     }
   }, [message.newMessage, isConnected, stompClient, currentChat]);
@@ -152,6 +155,15 @@ function HomePage() {
   useEffect(() => {
     dispatch(getUsersChat({ token }));
   }, [chat.createdChat, chat.createdGroup]);
+
+  // Effect to open the chat as soon as it's created (fixes clicking a
+  // searched user not opening the conversation window)
+  useEffect(() => {
+    if (chat.createdChat?.id) {
+      setCurrentChat(chat.createdChat);
+      setQuerys(""); // leave search-results view, show the chat window
+    }
+  }, [chat.createdChat]);
 
   // Function to handle opening the user menu
   const handleClick = (e) => {
@@ -207,7 +219,9 @@ function HomePage() {
     const prevLastMessages = { ...lastMessages };
     if (message.messages && message.messages.length > 0) {
       message.messages.forEach((msg) => {
-        prevLastMessages[msg.chat.id] = msg;
+        if (msg?.chat?.id) {
+          prevLastMessages[msg.chat.id] = msg;
+        }
       });
 
       setLastMessages(prevLastMessages);
@@ -330,8 +344,8 @@ function HomePage() {
                       {currentChat.group
                         ? currentChat.chatName
                         : auth.reqUser?.id !== currentChat.users[0]?.id
-                          ? currentChat.users[0].name
-                          : currentChat.users[1].name}
+                          ? currentChat.users[0]?.name || "Unknown"
+                          : currentChat.users[1]?.name || "Unknown"}
                     </p>
                   </div>
                   <div className="flex py-3 space-x-4 items-center px-3">
