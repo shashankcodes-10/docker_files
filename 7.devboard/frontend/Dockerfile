@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 #--------------------------runner-----------------------
-FROM nginx:alpine    
+FROM dhi.io/nginx:1-alpine3.23   
 
 COPY --from=builder /app/default.conf /etc/nginx/conf.d/default.conf
 
